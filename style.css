@@ -1,0 +1,146 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: sans-serif;
+}
+
+/* Menu Styles */
+#menuScreen {
+    text-align: center;
+    color: white;
+}
+
+h1 {
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+}
+
+.level-btn {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #333;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.level-btn:hover {
+    background-color: #555;
+}
+
+/* Game Screen Styles */
+#gameScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+#backBtn {
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    background-color: #444;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#backBtn:hover {
+    background-color: #666;
+}
+
+canvas {
+    background-color: #000;
+    border: 2px solid #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Add to your existing CSS */
+
+#completionScreen {
+    text-align: center;
+    color: white;
+}
+
+.menu-btn {
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    background-color: #444;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.menu-btn:hover {
+    background-color: #666;
+}
+
+/* Locked button style */
+.level-btn:disabled {
+    background-color: #222;
+    color: #666;
+    border-color: #444;
+    cursor: not-allowed;
+}
+
+/* Add to your existing CSS */
+
+#stagesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-height: 70vh;
+    overflow-y: auto; /* Adds a scrollbar if you add lots of stages */
+    padding-right: 15px;
+}
+
+.stage-block {
+    text-align: left;
+}
+
+.stage-title {
+    font-size: 18px;
+    color: #aaa;
+    border-bottom: 2px solid #444;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+    margin-top: 0;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.level-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: #333;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.level-btn:hover:not(:disabled) {
+    background-color: #555;
+    transform: scale(1.05);
+}
+
+.level-btn:disabled {
+    background-color: #222;
+    color: #555;
+    border-color: #333;
+    cursor: not-allowed;
+}
