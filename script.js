@@ -12,7 +12,9 @@ const colors = {
     1: '#ff4444', // Red (Avoid)
     2: '#4444ff', // Blue (Must Cross)
     3: '#ffcc00', // Yellow (Forced Turn)
-    4: '#32cd32'  // Green (Start/End)
+    4: '#32cd32', // Green (Start/End)
+    5: '#ff8800', // Orange (Toggle 0/1)
+    6: '#00ffff'  // NEW: Cyan (Forced Straight)
 };
 
 // Organize levels into stages!
@@ -60,21 +62,82 @@ const stagesData = [
         levels: [
             [[1, 4, 1], [0, 3, 0], [1, 4, 1]], // 4.1 The bounce
             [[4, 3, 0], [0, -1, 3], [0, 0, 4]], // 4.2 The stairs
+            [[4, 0, 1], [0, 3, 2], [1, 2, 4]], // 4.5 The final exam
             [[4, 1, 3, 3, 2],
              [0, 0, 0, 3, 3],
              [4, 1, 1, 1, 2]], // 4.3 Diagonal trap
             [[4, 3, 3,3,2],
              [3, 3, 3,3,3],
               [2, 3, 3,3,4]], // 4.4 Double bounce
-            [[4, 0, 1], [0, 3, 2], [1, 2, 4]] // 4.5 The final exam (Blue + Yellow + Red)
         ]
-    }
+    },
+        { name: "Stage 5:",
+         levels: [
+            [
+                [0,5,0,1,1],
+                [4,0,0,1,4],
+                [0,0,5,1,1],
+            ],
+            [
+                [4,5,0,2,4],
+                [0,0,1,5,0],
+                [0,1,1,1,5],
+                [2,0,5,0,2],
+                [5,1,1,1,0],
+            ],
+            [
+                [4,0,0,3,2],
+                [0,3,1,1,1],
+                [3,0,1,0,5],
+                [0,1,1,2,3],
+                [5,1,0,0,4],
+            ],
+            [
+                [2,3,1,3,4],
+                [3,1,0,5,3],
+                [1,0,1,0,1],
+                [3,5,0,1,3],
+                [4,3,1,3,2],
+            ],
+            [
+                [4,0,5,1,2],
+                [0,3,3,2,0],
+                [5,3,2,3,5],
+                [1,2,3,3,1],
+                [2,0,5,1,4],
+            ],
+        ]
+    },
+    {
+        name: "Stage 6:",
+        levels: [
+            [
+                [4,6,2],
+                [6,1,3],
+                [2,0,4],
+            ],
+            [
+                [4,0,1,3,1],
+                [0,6,6,5,6],
+                [0,3,1,0,4],
+            ],
+            [
+                [4,0,0,1,1,0,0,2],
+                [0,0,0,2,1,0,0,5],
+                [3,6,3,6,3,6,3,6],
+                [6,3,6,3,6,3,6,3],
+                [5,0,0,1,2,0,0,0],
+                [2,0,0,1,1,0,0,4],
+            ],
+        ]
+    },
 ];
 
 // Flatten the stages down into one master array of levels for the logic to use easily
 const levels = stagesData.flatMap(stage => stage.levels);
 
 // State variables
+let baseGrid = []; // Stores the original level layout
 let currentGrid = [];
 let currentLevelIndex = 0;
 let unlockedLevelIndex = localStorage.getItem('myGame_unlockedLevel') 
@@ -88,11 +151,12 @@ let offsetY = 0;
 let totalBlueTiles = 0;
 let crossedBlueTiles = new Set(); 
 let visitedTiles = []; 
+let drawnPoints = []; // Tracks exact pixel points of the drawn line
 
 // --- DYNAMIC MENU GENERATION ---
 function buildMenu() {
     let html = '';
-    let globalIndex = 0; // Tracks 0 through 19 across all stages
+    let globalIndex = 0; 
 
     stagesData.forEach(stage => {
         html += `<div class="stage-block">`;
@@ -100,7 +164,6 @@ function buildMenu() {
         html += `<div class="level-grid">`;
         
         stage.levels.forEach((level, indexInStage) => {
-            // Check if locked
             const isLocked = globalIndex > unlockedLevelIndex;
             const disabledAttr = isLocked ? 'disabled' : '';
             
@@ -113,7 +176,6 @@ function buildMenu() {
 
     stagesContainer.innerHTML = html;
 
-    // Attach click listeners to our newly minted buttons
     document.querySelectorAll('.level-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const levelIndex = parseInt(e.target.getAttribute('data-level'));
@@ -124,7 +186,10 @@ function buildMenu() {
 
 function loadLevel(levelIndex) {
     currentLevelIndex = levelIndex;
-    currentGrid = levels[levelIndex];
+    
+    // Save the original and clone it for playing
+    baseGrid = levels[levelIndex];
+    currentGrid = JSON.parse(JSON.stringify(baseGrid));
 
     const gridWidth = currentGrid[0].length * tileSize;
     const gridHeight = currentGrid.length * tileSize;
@@ -153,7 +218,7 @@ function levelComplete() {
         localStorage.setItem('myGame_unlockedLevel', unlockedLevelIndex);
     }
     
-    buildMenu(); // Rebuild menu to update locks
+    buildMenu(); 
 
     gameScreen.style.display = 'none';
     completionScreen.style.display = 'block';
@@ -229,12 +294,17 @@ function getTileAtPos(x, y) {
 }
 
 canvas.addEventListener('mousedown', (e) => {
+    // Reset grid to original state on new attempt
+    currentGrid = JSON.parse(JSON.stringify(baseGrid));
+    drawGrid();
+
     isDrawing = true;
     const pos = getMousePos(e);
     const clickedTile = getTileAtPos(pos.x, pos.y);
     
     crossedBlueTiles.clear();
     visitedTiles = []; 
+    drawnPoints = [pos]; 
     
     if (clickedTile && clickedTile.type === 4) {
         startTile = clickedTile;
@@ -250,25 +320,46 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mousemove', (e) => {
     if (!isDrawing) return;
     const pos = getMousePos(e);
+
+    const newPoint = pos;
+    const currentPoint = drawnPoints[drawnPoints.length - 1];
+
+    // SMOOTHING / MINIMUM DISTANCE CHECK
+    const dx = newPoint.x - currentPoint.x;
+    const dy = newPoint.y - currentPoint.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > 8) {
+        if (drawnPoints.length > 2) {
+            for (let i = 0; i < drawnPoints.length - 2; i++) {
+                const p1 = drawnPoints[i];
+                const p2 = drawnPoints[i + 1];
+
+                if (linesIntersect(p1, p2, currentPoint, newPoint)) {
+                    isDrawing = false; 
+                    drawGrid();        
+                    return;            
+                }
+            }
+        }
+        drawnPoints.push(newPoint); 
+    }
+
     const currentTile = getTileAtPos(pos.x, pos.y);
     
-    // 1. Off-grid, empty space, or red walls
     if (!currentTile || currentTile.type === -1 || currentTile.type === 1) {
         isDrawing = false; 
         drawGrid();        
         return;            
     }
 
-    // --- NEW: GREEN TILE LOGIC (ENTRY) ---
     if (currentTile.type === 4) {
-        // Check if this is the exact tile we started drawing on
         const isStartTile = (startTile && currentTile.row === startTile.row && currentTile.col === startTile.col);
         
-        // If it is NOT the start tile, check if we've earned the right to touch it
         if (!isStartTile) {
             const allBluesCrossed = (crossedBlueTiles.size === totalBlueTiles);
             if (!allBluesCrossed) {
-                isDrawing = false; // Haven't touched all blue tiles yet!
+                isDrawing = false; 
                 drawGrid();
                 return;
             }
@@ -277,29 +368,36 @@ canvas.addEventListener('mousemove', (e) => {
 
     const lastTile = visitedTiles[visitedTiles.length - 1];
     
-    // Only process logic if we've entered a physically NEW tile
     if (currentTile.row !== lastTile.row || currentTile.col !== lastTile.col) {
         
-        // --- NEW: GREEN TILE LOGIC (EXIT) ---
-        // Prevent drawing THROUGH an ending green tile
         if (lastTile.type === 4 && (lastTile.row !== startTile.row || lastTile.col !== startTile.col)) {
             isDrawing = false; 
             drawGrid();
             return;
         }
 
-        // BOUNCER LOGIC
+        // PREVIOUS TILE CHECKING LOGIC
         if (visitedTiles.length >= 2) {
             const prevTile = lastTile; 
             const prePrevTile = visitedTiles[visitedTiles.length - 2]; 
 
-            if (prevTile.type === 3) {
-                const dRowIn = prevTile.row - prePrevTile.row;
-                const dColIn = prevTile.col - prePrevTile.col;
-                const dRowOut = currentTile.row - prevTile.row;
-                const dColOut = currentTile.col - prevTile.col;
+            const dRowIn = prevTile.row - prePrevTile.row;
+            const dColIn = prevTile.col - prePrevTile.col;
+            const dRowOut = currentTile.row - prevTile.row;
+            const dColOut = currentTile.col - prevTile.col;
 
+            // YELLOW TILE: Must turn
+            if (prevTile.type === 3) {
                 if (dRowIn === dRowOut && dColIn === dColOut) {
+                    isDrawing = false; 
+                    drawGrid();
+                    return;
+                }
+            }
+
+            // CYAN TILE: Must go straight
+            if (prevTile.type === 6) {
+                if (dRowIn !== dRowOut || dColIn !== dColOut) {
                     isDrawing = false; 
                     drawGrid();
                     return;
@@ -309,8 +407,32 @@ canvas.addEventListener('mousemove', (e) => {
 
         visitedTiles.push(currentTile);
 
+        // ORANGE TILE LOGIC (THE SWAP)
+        if (currentTile.type === 5) {
+            for (let r = 0; r < currentGrid.length; r++) {
+                for (let c = 0; c < currentGrid[r].length; c++) {
+                    if (currentGrid[r][c] === 0) {
+                        currentGrid[r][c] = 1;
+                    } else if (currentGrid[r][c] === 1) {
+                        currentGrid[r][c] = 0;
+                    }
+                }
+            }
+            drawGrid();     
+            redrawPath();   
+        }
+
+        // BLUE TILE ONE-TIME-USE LOGIC
         if (currentTile.type === 2) {
-            crossedBlueTiles.add(`${currentTile.row},${currentTile.col}`);
+            const tileKey = `${currentTile.row},${currentTile.col}`;
+            
+            if (crossedBlueTiles.has(tileKey)) {
+                isDrawing = false; 
+                drawGrid();        
+                return;            
+            }
+            
+            crossedBlueTiles.add(tileKey);
         }
     }
     
@@ -341,3 +463,26 @@ canvas.addEventListener('mouseleave', () => {
     isDrawing = false;
     drawGrid(); 
 });
+
+// --- UTILITY FUNCTIONS ---
+
+function redrawPath() {
+    if (drawnPoints.length === 0) return;
+    ctx.beginPath();
+    ctx.moveTo(drawnPoints[0].x, drawnPoints[0].y);
+    for (let i = 1; i < drawnPoints.length; i++) {
+        ctx.lineTo(drawnPoints[i].x, drawnPoints[i].y);
+    }
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+function linesIntersect(p1, p2, p3, p4) {
+    function ccw(A, B, C) {
+        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+    }
+    return (ccw(p1, p3, p4) !== ccw(p2, p3, p4)) && (ccw(p1, p2, p3) !== ccw(p1, p2, p4));
+}
