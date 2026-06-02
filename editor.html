@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw A Line - Level Editor</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            gap: 30px;
+            height: 90vh;
+        }
+
+        /* Sidebar Styling */
+        #sidebar {
+            width: 320px;
+            background-color: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #444;
+            padding-bottom: 8px;
+            font-size: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        input[type="number"] {
+            background-color: #444;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #0098ff;
+        }
+
+        button.secondary {
+            background-color: #444;
+            border: 1px solid #555;
+        }
+        button.secondary:hover {
+            background-color: #555;
+        }
+
+        /* Palette Styling */
+        .palette {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .palette-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background-color: #383838;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .palette-item:hover {
+            background-color: #444;
+        }
+
+        .palette-item.active {
+            border-color: #007acc;
+            background-color: #484848;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid #222;
+        }
+
+        /* Workspace Grid Styling */
+        #workspace {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #121212;
+            border-radius: 8px;
+            border: 2px dashed #333;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        #gridContainer {
+            display: grid;
+            gap: 2px;
+            background-color: #222;
+            padding: 4px;
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        .grid-cell {
+            width: 50px;
+            height: 50px;
+            box-sizing: border-box;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.15);
+            transition: transform 0.05s;
+        }
+
+        .grid-cell:hover {
+            transform: scale(1.02);
+            z-index: 2;
+            box-shadow: 0 0 4px rgba(255,255,255,0.3);
+        }
+
+        /* Output Window */
+        textarea {
+            width: 100%;
+            height: 120px;
+            background-color: #1a1a1a;
+            color: #32cd32;
+            border: 1px solid #444;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 8px;
+            resize: vertical;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Level Editor</h2>
+        
+        <div class="control-group">
+            <label>Grid Size</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="number" id="inputRows" value="4" min="1" max="20" style="width: 50%;">
+                <input type="number" id="inputCols" value="5" min="1" max="20" style="width: 50%;">
+            </div>
+            <button id="resizeBtn">Apply Grid Size</button>
+        </div>
+
+        <div class="control-group">
+            <label>Select Element to Paint</label>
+            <div class="palette" id="paletteContainer"></div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #444; width: 100%;">
+
+        <div class="control-group">
+            <label>Level Array Code</label>
+            <textarea id="outputData" placeholder="Grid code will appear here..."></textarea>
+            <button id="copyBtn">Copy to Clipboard</button>
+            <button id="importBtn" class="secondary">Import Formatted Code</button>
+        </div>
+        
+        <button id="clearBtn" class="secondary" style="margin-top: auto; border-color: #cc2424; color: #ff6b6b;">Clear Grid (All Grey)</button>
+    </div>
+
+    <div id="workspace">
+        <div id="gridContainer"></div>
+    </div>
+
+    <script>
+        // Game configuration colors
+        const colors = {
+            '-1': '#1e1e1e', // Void (Matches editor canvas but gives hint)
+            0: '#444444',    // Grey (Normal)
+            1: '#ff4444',    // Red (Avoid)
+            2: '#4444ff',    // Blue (Must Cross)
+            3: '#ffcc00',    // Yellow (Forced Turn)
+            4: '#32cd32',    // Green (Start/End)
+            5: '#ff8800',    // Orange (Toggle 0/1)
+            6: '#00ffff'     // Cyan (Forced Straight)
+        };
+
+        const tileNames = {
+            '-1': 'Void (-1)',
+            0: 'Normal (0)',
+            1: 'Avoid (1)',
+            2: 'Must Cross (2)',
+            3: 'Turn (3)',
+            4: 'Spawn (4)',
+            5: 'Toggle (5)',
+            6: 'Straight (6)'
+        };
+
+        // Editor States
+        let rows = 4;
+        let cols = 5;
+        let currentGrid = [];
+        let selectedType = 4; // Default to Green Start/End block
+        let isDrawing = false;
+
+        // UI Selectors
+        const gridContainer = document.getElementById('gridContainer');
+        const paletteContainer = document.getElementById('paletteContainer');
+        const outputData = document.getElementById('outputData');
+        const inputRows = document.getElementById('inputRows');
+        const inputCols = document.getElementById('inputCols');
+
+        // Setup Palette View
+        function buildPalette() {
+            let html = '';
+            Object.keys(colors).forEach(key => {
+                const typeId = parseInt(key);
+                const activeClass = typeId === selectedType ? 'active' : '';
+                html += `
+                    <div class="palette-item ${activeClass}" data-type="${typeId}">
+                        <div class="color-swatch" style="background-color: ${colors[key]}; ${typeId === -1 ? 'border: 1px dashed #555;' : ''}"></div>
+                        <span style="font-size: 12px;">${tileNames[key]}</span>
+                    </div>
+                `;
+            });
+            paletteContainer.innerHTML = html;
+
+            // Bind palette clicks
+            document.querySelectorAll('.palette-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    document.querySelectorAll('.palette-item').forEach(p => p.classList.remove('active'));
+                    item.classList.add('active');
+                    selectedType = parseInt(item.getAttribute('data-type'));
+                });
+            });
+        }
+
+        // Initialize empty or resized internal tracking grid array
+        function initGridArray() {
+            let newGrid = [];
+            for (let r = 0; r < rows; r++) {
+                let rowArray = [];
+                for (let c = 0; c < cols; c++) {
+                    // Retain old value if it fits within new dimensions, else default to 0 (Grey)
+                    if (currentGrid[r] && currentGrid[r][c] !== undefined) {
+                        rowArray.push(currentGrid[r][c]);
+                    } else {
+                        rowArray.push(0);
+                    }
+                }
+                newGrid.push(rowArray);
+            }
+            currentGrid = newGrid;
+        }
+
+        // Generate the DOM grid workspace layout
+        function drawWorkspaceGrid() {
+            gridContainer.innerHTML = '';
+            gridContainer.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cellValue = currentGrid[r][c];
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.style.backgroundColor = colors[cellValue];
+                    if (cellValue === -1) {
+                        cell.style.border = '1px dashed #333';
+                    }
+                    cell.setAttribute('data-row', r);
+                    cell.setAttribute('data-col', c);
+
+                    // Click to single paint
+                    cell.addEventListener('mousedown', (e) => {
+                        isDrawing = true;
+                        paintCell(cell);
+                    });
+
+                    // Hold and drag over paint functionality
+                    cell.addEventListener('mouseenter', () => {
+                        if (isDrawing) paintCell(cell);
+                    });
+
+                    gridContainer.appendChild(cell);
+                }
+            }
+            updateExportCode();
+        }
+
+        function paintCell(cellElement) {
+            const r = parseInt(cellElement.getAttribute('data-row'));
+            const c = parseInt(cellElement.getAttribute('data-col'));
+            
+            currentGrid[r][c] = selectedType;
+            cellElement.style.backgroundColor = colors[selectedType];
+            if (selectedType === -1) {
+                cellElement.style.border = '1px dashed #333';
+            } else {
+                cellElement.style.border = '1px solid rgba(0,0,0,0.15)';
+            }
+            updateExportCode();
+        }
+
+        // Formats the 2D array output cleanly into script.js format style
+        function updateExportCode() {
+            let outputLines = currentGrid.map(row => `    [${row.join(', ')}]`);
+            let formattedJS = `[\n${outputLines.join(',\n')}\n]`;
+            outputData.value = formattedJS;
+        }
+
+        // Global draw listeners to handle drag off-grid edge
+        window.addEventListener('mouseup', () => { isDrawing = false; });
+
+        // Button Listener Actions
+        document.getElementById('resizeBtn').addEventListener('click', () => {
+            rows = parseInt(inputRows.value) || 4;
+            cols = parseInt(inputCols.value) || 5;
+            initGridArray();
+            drawWorkspaceGrid();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if(confirm("Are you sure you want to completely clear this setup level?")) {
+                currentGrid = Array(rows).fill(null).map(() => Array(cols).fill(0));
+                drawWorkspaceGrid();
+            }
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            outputData.select();
+            document.execCommand('copy');
+            alert('Level layout code copied to clipboard! Paste it inside your script.js stagesData array configurations.');
+        });
+
+        document.getElementById('importBtn').addEventListener('click', () => {
+            const code = outputData.value.trim();
+            if (!code) return alert("Please paste level array text code into the area first.");
+            
+            try {
+                // Parse layout text dynamically safely
+                const parsed = eval(code); 
+                if (Array.isArray(parsed) && Array.isArray(parsed[0])) {
+                    rows = parsed.length;
+                    cols = parsed[0].length;
+                    inputRows.value = rows;
+                    inputCols.value = cols;
+                    currentGrid = parsed;
+                    drawWorkspaceGrid();
+                } else {
+                    alert("Invalid format! Must structure as a 2D Array layout framework matrix: [[4,0],[0,4]]");
+                }
+            } catch (err) {
+                alert("Error reading standard configuration matrix system setup format code structure: " + err.message);
+            }
+        });
+
+        // Initialize Runtime setup layout components
+        buildPalette();
+        initGridArray();
+        drawWorkspaceGrid();
+    </script>
+</body>
+</html>
