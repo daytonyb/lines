@@ -204,16 +204,17 @@
     </div>
 
     <script>
-        // Game configuration colors
+// Game configuration colors
         const colors = {
-            '-1': '#1e1e1e', // Void (Matches editor canvas but gives hint)
+            '-1': '#1e1e1e', // Void
             0: '#444444',    // Grey (Normal)
             1: '#ff4444',    // Red (Avoid)
             2: '#4444ff',    // Blue (Must Cross)
             3: '#ffcc00',    // Yellow (Forced Turn)
             4: '#32cd32',    // Green (Start/End)
             5: '#ff8800',    // Orange (Toggle 0/1)
-            6: '#00ffff'     // Cyan (Forced Straight)
+            6: '#00ffff',    // Cyan (Forced Straight)
+            7: '#9932cc'     // NEW: Purple (Overpass)
         };
 
         const tileNames = {
@@ -224,7 +225,8 @@
             3: 'Turn (3)',
             4: 'Spawn (4)',
             5: 'Toggle (5)',
-            6: 'Straight (6)'
+            6: 'Straight (6)',
+            7: 'Overpass (7)' // NEW
         };
 
         // Editor States

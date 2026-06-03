@@ -14,7 +14,8 @@ const colors = {
     3: '#ffcc00', // Yellow (Forced Turn)
     4: '#32cd32', // Green (Start/End)
     5: '#ff8800', // Orange (Toggle 0/1)
-    6: '#00ffff'  // NEW: Cyan (Forced Straight)
+    6: '#00ffff', // Cyan (Forced Straight)
+    7: '#9932cc'  // NEW: Purple (Overpass / Line Crossing Allowance)
 };
 
 // Organize levels into stages!
@@ -25,9 +26,9 @@ const stagesData = [
             [[4,4]], // 1.1 Straight line
             [[4, 0, 4]], // 1.2 Corner
             [[4, 0, 0],[0, 0, 4]], // 1.3 The hole
-            [[0, 0, 0, 0], [4, -1, -1, 4]], // 1.4 The U-Turn
+            [[0, 0, 0, 4], [4, 0, 0, 0]], // 1.4 The U-Turn
             [[4, 0, 0, 0, 0], 
-            [0, -1, 0, -1, 0], 
+            [0, 0, 0, 0, 0], 
             [0, 0, 0, 0, 4]] // 1.5 Center path
         ]
     },
@@ -38,9 +39,9 @@ const stagesData = [
             [[4, 0, 0], [1, 1, 0], [4, 0, 0]], // 2.2 The hook
             [[4, 1, 0, 4], [0, 1, 0, 1], [0, 0, 0, 1]], // 2.3 Long way around
             [
-             [0,4,0,0,0],
+             [4,0,0,0,0],
              [1,1,1,1,0], 
-             [0,4,0,0,0]
+             [4,0,0,0,0]
             ], // 2.4 Squeeze
             [[4, 1, 0, 0, 0],
              [0, 1, 0, 1, 0],
@@ -50,19 +51,29 @@ const stagesData = [
     {
         name: "Stage 3:",
         levels: [
-            [[4, 2, 4]], // 3.1 Intro
             [[4, 0, 0], [1, 1, 2], [4, 0, 0]], // 3.2 Forced visit
             [[4, 0, 4], [0, 0, 0], [0, 2, 0]], // 3.3 Out of the way
             [[4, 2, 2, 4], [0, 2, 2, 0]], // 3.4 Double tap
-            [[4, 0, 4], [1, 0, 1], [0, 0, 0], [2, 1, 2]] // 3.5 Backtrack
+            [[4, 0, 4], [1, 0, 1], [0, 0, 0], [2, 1, 2]], // 3.5 Backtrack
+            [
+    [4, 1, 1, 1, 1],
+    [0, 0, 0, 2, 2],
+    [4, 1, 0, 0, 0]
+],
         ]
     },
     {
         name: "Stage 4:",
         levels: [
-            [[1, 4, 1], [0, 3, 0], [1, 4, 1]], // 4.1 The bounce
-            [[4, 3, 0], [0, -1, 3], [0, 0, 4]], // 4.2 The stairs
-            [[4, 0, 1], [0, 3, 2], [1, 2, 4]], // 4.5 The final exam
+            [[4, 0, 3],
+             [1, 1, 0],
+             [4, 0, 3]], // 4.1 The bounce
+            [[4, 3, 0],
+             [0, 1, 3],
+             [0, 0, 4]], // 4.2 The stairs
+            [[1, 4, 1],
+             [0, 3, 0],
+              [1, 4, 1]], // 4.5 The final exam
             [[4, 1, 3, 3, 2],
              [0, 0, 0, 3, 3],
              [4, 1, 1, 1, 2]], // 4.3 Diagonal trap
@@ -111,11 +122,11 @@ const stagesData = [
     {
         name: "Stage 6:",
         levels: [
-            [
-                [4,6,2],
-                [6,1,3],
-                [2,0,4],
-            ],
+[
+    [4, 6, 0],
+    [1, 1, 6],
+    [4, 6, 0]
+],
             [
                 [4,0,1,3,1],
                 [0,6,6,5,6],
@@ -146,6 +157,45 @@ const stagesData = [
             ],
         ]
     },
+    {
+        name: "Stage 7:",
+        levels: [
+                        [
+    [4, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0],
+    [0, 0, 6, 2, 0],
+    [0, 1, 2, 1, 1],
+    [7, 1, 5, 1, 4]
+],
+            [
+    [4, 1, 2, 1],
+    [7, 1, 2, 1],
+    [0, 0, 0, 4]
+],
+
+[
+    [4, 1, 1, 1, 7],
+    [0, 0, 2, 2, 0],
+    [4, 1, 1, 1, 7]
+],
+[
+    [4, 0, 0, 0, 0, 7],
+    [1, 1, 1, 1, 0, 1],
+    [7, 0, 2, 0, 2, 0],
+    [0, 1, 0, 1, 0, 1],
+    [0, 7, 1, 3, 6, 4],
+    [1, 1, 1, 0, 0, 1]
+],
+[
+    [4, 0, 1, 5, 1, 1, 7],
+    [3, 6, 6, 6, 0, 2, 0],
+    [0, 2, 1, 3, 6, 6, 6],
+    [3, 6, 6, 6, 1, 2, 2],
+    [0, 2, 0, 3, 6, 6, 3],
+    [7, 1, 1, 5, 1, 0, 4]
+],
+        ]
+    },
 ];
 
 // Flatten the stages down into one master array of levels for the logic to use easily
@@ -165,6 +215,10 @@ let offsetY = 0;
 
 let totalBlueTiles = 0;
 let crossedBlueTiles = new Set(); 
+let crossedOverpassTiles = new Set();        // Tracks unique purple tiles stepped on
+let currentIntersectionCount = 0;           // Tracks total line crossings on the board
+let isCurrentVisitARevisit = false;         // Tracks if current blue tile is an old one
+let hasIntersectsInCurrentBlueVisit = false; // Verifies if a line crossing happened inside it
 let visitedTiles = []; 
 let drawnPoints = []; // Tracks exact pixel points of the drawn line
 
@@ -318,6 +372,10 @@ canvas.addEventListener('mousedown', (e) => {
     const clickedTile = getTileAtPos(pos.x, pos.y);
     
     crossedBlueTiles.clear();
+    crossedOverpassTiles.clear(); 
+    currentIntersectionCount = 0; 
+    isCurrentVisitARevisit = false;
+    hasIntersectsInCurrentBlueVisit = false;
     visitedTiles = []; 
     drawnPoints = [pos]; 
     
@@ -338,11 +396,14 @@ canvas.addEventListener('mousemove', (e) => {
 
     const newPoint = pos;
     const currentPoint = drawnPoints[drawnPoints.length - 1];
+    const currentTile = getTileAtPos(pos.x, pos.y);
 
     // SMOOTHING / MINIMUM DISTANCE CHECK
     const dx = newPoint.x - currentPoint.x;
     const dy = newPoint.y - currentPoint.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
+
+    let intersectionsThisFrame = 0;
 
     if (distance > 8) {
         if (drawnPoints.length > 2) {
@@ -351,17 +412,28 @@ canvas.addEventListener('mousemove', (e) => {
                 const p2 = drawnPoints[i + 1];
 
                 if (linesIntersect(p1, p2, currentPoint, newPoint)) {
-                    isDrawing = false; 
-                    drawGrid();        
-                    return;            
+                    intersectionsThisFrame++;
+                    
+                    // Mark if an intersection happens inside an already-visited blue tile
+                    if (currentTile && currentTile.type === 2 && crossedBlueTiles.has(`${currentTile.row},${currentTile.col}`)) {
+                        hasIntersectsInCurrentBlueVisit = true;
+                    }
                 }
+            }
+        }
+
+        if (intersectionsThisFrame > 0) {
+            currentIntersectionCount += intersectionsThisFrame;
+            // Rule check: Have we crossed our line more times than unique purple tokens collected?
+            if (currentIntersectionCount > crossedOverpassTiles.size) {
+                isDrawing = false; 
+                drawGrid();        
+                return;            
             }
         }
         drawnPoints.push(newPoint); 
     }
 
-    const currentTile = getTileAtPos(pos.x, pos.y);
-    
     if (!currentTile || currentTile.type === -1 || currentTile.type === 1) {
         isDrawing = false; 
         drawGrid();        
@@ -420,6 +492,15 @@ canvas.addEventListener('mousemove', (e) => {
             }
         }
 
+        // EXITING TILE GATEKEEPER: If leaving a revisited blue tile, verify an intersection actually happened
+        if (lastTile.type === 2 && isCurrentVisitARevisit) {
+            if (!hasIntersectsInCurrentBlueVisit) {
+                isDrawing = false; 
+                drawGrid();        
+                return;   
+            }
+        }
+
         visitedTiles.push(currentTile);
 
         // ORANGE TILE LOGIC (THE SWAP)
@@ -437,17 +518,27 @@ canvas.addEventListener('mousemove', (e) => {
             redrawPath();   
         }
 
-        // BLUE TILE ONE-TIME-USE LOGIC
+        // BLUE TILE HANDLING
         if (currentTile.type === 2) {
             const tileKey = `${currentTile.row},${currentTile.col}`;
             
             if (crossedBlueTiles.has(tileKey)) {
-                isDrawing = false; 
-                drawGrid();        
-                return;            
+                // This is a re-entry. Initialize tracking flags.
+                isCurrentVisitARevisit = true;
+                hasIntersectsInCurrentBlueVisit = (intersectionsThisFrame > 0);
+            } else {
+                // First time visit is always allowed naturally.
+                isCurrentVisitARevisit = false;
+                hasIntersectsInCurrentBlueVisit = false;
             }
             
             crossedBlueTiles.add(tileKey);
+        }
+
+        // PURPLE TILE COLLECTION LOGIC
+        if (currentTile.type === 7) {
+            const tileKey = `${currentTile.row},${currentTile.col}`;
+            crossedOverpassTiles.add(tileKey);
         }
     }
     
@@ -458,7 +549,6 @@ canvas.addEventListener('mousemove', (e) => {
     ctx.lineJoin = 'round';
     ctx.stroke();
 });
-
 canvas.addEventListener('mouseup', (e) => {
     if (!isDrawing) return;
     isDrawing = false;
