@@ -6,22 +6,29 @@ const gameScreen = document.getElementById('gameScreen');
 const completionScreen = document.getElementById('completionScreen');
 const stagesContainer = document.getElementById('stagesContainer');
 
+// Mode Selection Elements
+const modeScreen = document.getElementById('modeScreen');
+const colorModeBtn = document.getElementById('colorModeBtn');
+const shapeModeBtn = document.getElementById('shapeModeBtn');
+const backToModesBtn = document.getElementById('backToModesBtn');
+
 // --- GAME DATA ---
 const colors = {
-    0: '#444444', // Grey
-    1: '#ff4444', // Red (Avoid)
-    2: '#4444ff', // Blue (Must Cross)
-    3: '#ffcc00', // Yellow (Forced Turn)
-    4: '#32cd32', // Green (Start/End)
-    5: '#ff8800', // Orange (Toggle 0/1)
-    6: '#00ffff', // Cyan (Forced Straight)
-    7: '#9932cc'  // NEW: Purple (Overpass / Line Crossing Allowance)
+    '-1': '#1e1e1e', // Void / Empty space
+    0: '#444444',    // Grey path (Color Mode)
+    1: '#ff4444',    // Red (Avoid)
+    2: '#4444ff',    // Blue (Must Cross)
+    3: '#ffcc00',    // Yellow (Forced Turn)
+    4: '#32cd32',    // Green (Start/End Terminals)
+    5: '#ff8800',    // Orange (Toggle 0/1)
+    6: '#00ffff',    // Cyan (Forced Straight)
+    7: '#9932cc'     // Purple (Overpass)
 };
 
-// Organize levels into stages!
-const stagesData = [
+// Pool 1: Color Mode Stages (Standard Cell-Based Movement)
+const colorStagesData = [
     {
-        name: "Stage 1:",
+        name: "Color Stage 1:",
         levels: [
             [[4,4]], // 1.1 Straight line
             [[4, 0, 4]], // 1.2 Corner
@@ -33,7 +40,7 @@ const stagesData = [
         ]
     },
     {
-        name: "Stage 2:",
+        name: "Color Stage 2:",
         levels: [
             [[4, 1, 4], [0, 0, 0]], // 2.1 The wall
             [[4, 0, 0], [1, 1, 0], [4, 0, 0]], // 2.2 The hook
@@ -49,21 +56,21 @@ const stagesData = [
         ]
     },
     {
-        name: "Stage 3:",
+        name: "Color Stage 3:",
         levels: [
             [[4, 0, 0], [1, 1, 2], [4, 0, 0]], // 3.2 Forced visit
             [[4, 0, 4], [0, 0, 0], [0, 2, 0]], // 3.3 Out of the way
             [[4, 2, 2, 4], [0, 2, 2, 0]], // 3.4 Double tap
             [[4, 0, 4], [1, 0, 1], [0, 0, 0], [2, 1, 2]], // 3.5 Backtrack
             [
-    [4, 1, 1, 1, 1],
-    [0, 0, 0, 2, 2],
-    [4, 1, 0, 0, 0]
-],
+                [4, 1, 1, 1, 1],
+                [0, 0, 0, 2, 2],
+                [4, 1, 0, 0, 0]
+            ],
         ]
     },
     {
-        name: "Stage 4:",
+        name: "Color Stage 4:",
         levels: [
             [[4, 0, 3],
              [1, 1, 0],
@@ -82,8 +89,9 @@ const stagesData = [
               [2, 3, 3,3,4]], // 4.4 Double bounce
         ]
     },
-        { name: "Stage 5:",
-         levels: [
+    { 
+        name: "Color Stage 5:",
+        levels: [
             [
                 [0,5,0,1,1],
                 [4,0,0,1,4],
@@ -120,33 +128,33 @@ const stagesData = [
         ]
     },
     {
-        name: "Stage 6:",
+        name: "Color Stage 6:",
         levels: [
-[
-    [4, 6, 0],
-    [1, 1, 6],
-    [4, 6, 0]
-],
+            [
+                [4, 6, 0],
+                [1, 1, 6],
+                [4, 6, 0]
+            ],
             [
                 [4,0,1,3,1],
                 [0,6,6,5,6],
                 [0,3,1,0,4],
             ],
             [
-    [4, 0, 6, 0, 2],
-    [0, 6, 0, 6, 1],
-    [6, 0, 5, 1, 6],
-    [0, 6, 1, 6, 1],
-    [2, 1, 6, 1, 4]
-],
-[
-    [4, 0, 1, 1, 0, 2],
-    [0, 6, 6, 3, 6, 0],
-    [0, 6, 0, 0, 6, 1],
-    [1, 5, 0, 5, 6, 1],
-    [0, 6, 6, 6, 6, 0],
-    [2, 1, 0, 5, 1, 4]
-],
+                [4, 0, 6, 0, 2],
+                [0, 6, 0, 6, 1],
+                [6, 0, 5, 1, 6],
+                [0, 6, 1, 6, 1],
+                [2, 1, 6, 1, 4]
+            ],
+            [
+                [4, 0, 1, 1, 0, 2],
+                [0, 6, 6, 3, 6, 0],
+                [0, 6, 0, 0, 6, 1],
+                [1, 5, 0, 5, 6, 1],
+                [0, 6, 6, 6, 6, 0],
+                [2, 1, 0, 5, 1, 4]
+            ],
             [
                 [4,0,0,1,1,0,0,2],
                 [0,0,0,2,1,0,0,5],
@@ -158,56 +166,187 @@ const stagesData = [
         ]
     },
     {
-        name: "Stage 7:",
+        name: "Color Stage 7:",
         levels: [
-                        [
-    [4, 0, 1, 0, 0],
-    [0, 1, 0, 0, 0],
-    [0, 0, 6, 2, 0],
-    [0, 1, 2, 1, 1],
-    [7, 1, 5, 1, 4]
-],
             [
-    [4, 1, 2, 1],
-    [7, 1, 2, 1],
-    [0, 0, 0, 4]
-],
-
-[
-    [4, 1, 1, 1, 7],
-    [0, 0, 2, 2, 0],
-    [4, 1, 1, 1, 7]
-],
-[
-    [4, 0, 0, 0, 0, 7],
-    [1, 1, 1, 1, 0, 1],
-    [7, 0, 2, 0, 2, 0],
-    [0, 1, 0, 1, 0, 1],
-    [0, 7, 1, 3, 6, 4],
-    [1, 1, 1, 0, 0, 1]
-],
-[
-    [4, 0, 1, 5, 1, 1, 7],
-    [3, 6, 6, 6, 0, 2, 0],
-    [0, 2, 1, 3, 6, 6, 6],
-    [3, 6, 6, 6, 1, 2, 2],
-    [0, 2, 0, 3, 6, 6, 3],
-    [7, 1, 1, 5, 1, 0, 4]
-],
+                [4, 0, 1, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 6, 2, 0],
+                [0, 1, 2, 1, 1],
+                [7, 1, 5, 1, 4]
+            ],
+            [
+                [4, 1, 2, 1],
+                [7, 1, 2, 1],
+                [0, 0, 0, 4]
+            ],
+            [
+                [4, 1, 1, 1, 7],
+                [0, 0, 2, 2, 0],
+                [4, 1, 1, 1, 7]
+            ],
+            [
+                [4, 0, 0, 0, 0, 7],
+                [1, 1, 1, 1, 0, 1],
+                [7, 0, 2, 0, 2, 0],
+                [0, 1, 0, 1, 0, 1],
+                [0, 7, 1, 3, 6, 4],
+                [1, 1, 1, 0, 0, 1]
+            ],
+            [
+                [4, 0, 1, 5, 1, 1, 7],
+                [3, 6, 6, 6, 0, 2, 0],
+                [0, 2, 1, 3, 6, 6, 6],
+                [3, 6, 6, 6, 1, 2, 2],
+                [0, 2, 0, 3, 6, 6, 3],
+                [7, 1, 1, 5, 1, 0, 4]
+            ],
         ]
     },
 ];
 
-// Flatten the stages down into one master array of levels for the logic to use easily
-const levels = stagesData.flatMap(stage => stage.levels);
+// Pool 2: Shape Mode Stages
+const shapeStagesData = [
+    {
+        name: "Shape Stage 1:",
+        levels: [
+            {
+                grid: [
+                    [0, 0, 0],
+                    [4, 0, 4],
+                    [0, 0, 0]
+                ],
+                cells: [
+                    [0, 0], // Empty panels ready for rules
+                    [0, 0]
+                ]
+            },
+            {
+                grid: [
+                    [4, 0, 0],
+                    [0, 0, 0],
+                    [0, 0, 4]
+                ],
+                cells: [
+                    [0, 0, 0], // Black and White Squares are supported!
+                    [0, 0, 0]
+                ]
+            },
+                        {
+                grid: [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [4, 0, 0, 4]
+                ],
+                cells: [
+                    [0, 0, 0], // Black and White Squares are supported!
+                    [0, 0, 0]
+                ]
+            },
+                        {
+                grid: [
+                    [4, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 4]
+                ],
+                cells: [
+                    [0, 0, 0], // Black and White Squares are supported!
+                    [0, 0, 0]
+                ]
+            },
+                        {
+                grid: [
+                    [4, 0, 0,0, 0],
+                    [0, 0, 0,0, 0],
+                    [0, 0, 0,0, 4]
+                ],
+                cells: [
+                    [0, 0, 0], // Black and White Squares are supported!
+                    [0, 0, 0]
+                ]
+            },
+        ]
+    },
+    {
+        name: "Shape Stage 2:",
+        levels: [
+{
+    grid: [
+        [4, 0],
+        [0, 4]
+    ],
+    cells: [
+        [1]
+    ]
+},
+            {
+    grid: [
+        [4, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 4]
+    ],
+    cells: [
+        [0, 0, 0],
+        [0, 1, 0],
+        [0, 0, 0]
+    ]
+},
+{
+    grid: [
+        [4, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 4]
+    ],
+    cells: [
+        [0, 0, 0, 0],
+        [0, 1, 1, 0],
+        [0, 0, 0, 0]
+    ]
+},
+{
+    grid: [
+        [4, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [4, 0, 0, 0, 0]
+    ],
+    cells: [
+        [0, 0, 0, 0],
+        [0, 1, 1, 0],
+        [0, 1, 1, 0],
+        [0, 0, 0, 0]
+    ]
+},
+{
+    grid: [
+        [4, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 4]
+    ],
+    cells: [
+        [0, 0, 1, 0],
+        [1, 1, 0, 0],
+        [0, 0, 0, 0],
+        [0, 1, 0, 1]
+    ]
+},
+        ]
+    },
+];
+
+
 
 // State variables
-let baseGrid = []; // Stores the original level layout
+let baseGrid = [];
 let currentGrid = [];
+let currentCells = []; 
 let currentLevelIndex = 0;
-let unlockedLevelIndex = localStorage.getItem('myGame_unlockedLevel') 
-    ? parseInt(localStorage.getItem('myGame_unlockedLevel')) 
-    : 0;
+let currentGameMode = 'color'; 
 
 const tileSize = 100;
 let offsetX = 0;
@@ -215,19 +354,43 @@ let offsetY = 0;
 
 let totalBlueTiles = 0;
 let crossedBlueTiles = new Set(); 
-let crossedOverpassTiles = new Set();        // Tracks unique purple tiles stepped on
-let currentIntersectionCount = 0;           // Tracks total line crossings on the board
-let isCurrentVisitARevisit = false;         // Tracks if current blue tile is an old one
-let hasIntersectsInCurrentBlueVisit = false; // Verifies if a line crossing happened inside it
+let crossedOverpassTiles = new Set();        
+let currentIntersectionCount = 0;           
+let isCurrentVisitARevisit = false;         
+let hasIntersectsInCurrentBlueVisit = false; 
 let visitedTiles = []; 
-let drawnPoints = []; // Tracks exact pixel points of the drawn line
+let drawnPoints = [];
+let currentMousePos = null;
 
-// --- DYNAMIC MENU GENERATION ---
+// --- PROGRESSION HELPERS ---
+// This is where the game tracks locks completely independently!
+function getUnlockedIndex() {
+    const key = `myGame_unlockedLevel_${currentGameMode}`;
+    return localStorage.getItem(key) ? parseInt(localStorage.getItem(key)) : 0;
+}
+
+function setUnlockedIndex(val) {
+    const key = `myGame_unlockedLevel_${currentGameMode}`;
+    localStorage.setItem(key, val);
+}
+
+function getActiveStagesData() {
+    return currentGameMode === 'color' ? colorStagesData : shapeStagesData;
+}
+
+function getActiveLevelsFlattened() {
+    return getActiveStagesData().flatMap(stage => stage.levels);
+}
+
+// --- MENU BUILDER ---
 function buildMenu() {
     let html = '';
     let globalIndex = 0; 
+    
+    const targetStages = getActiveStagesData();
+    const unlockedLevelIndex = getUnlockedIndex(); // Grabs the correct mode lock value
 
-    stagesData.forEach(stage => {
+    targetStages.forEach(stage => {
         html += `<div class="stage-block">`;
         html += `<h2 class="stage-title">${stage.name}</h2>`;
         html += `<div class="level-grid">`;
@@ -255,21 +418,29 @@ function buildMenu() {
 
 function loadLevel(levelIndex) {
     currentLevelIndex = levelIndex;
-    
-    // Save the original and clone it for playing
-    baseGrid = levels[levelIndex];
-    currentGrid = JSON.parse(JSON.stringify(baseGrid));
+    const activePool = getActiveLevelsFlattened();
+    const rawLevel = activePool[levelIndex];
 
-    const gridWidth = currentGrid[0].length * tileSize;
-    const gridHeight = currentGrid.length * tileSize;
+    if (currentGameMode === 'color') {
+        baseGrid = rawLevel;
+        currentGrid = JSON.parse(JSON.stringify(baseGrid));
+        currentCells = [];
+    } else {
+        baseGrid = rawLevel.grid;
+        currentGrid = JSON.parse(JSON.stringify(baseGrid));
+        currentCells = rawLevel.cells ? JSON.parse(JSON.stringify(rawLevel.cells)) : [];
+    }
+
+    const gridWidth = (currentGrid[0].length - (currentGameMode === 'shape' ? 1 : 0)) * tileSize;
+    const gridHeight = (currentGrid.length - (currentGameMode === 'shape' ? 1 : 0)) * tileSize;
     offsetX = (canvas.width - gridWidth) / 2;
     offsetY = (canvas.height - gridHeight) / 2;
 
     totalBlueTiles = 0;
-    for (let row = 0; row < currentGrid.length; row++) {
-        for (let col = 0; col < currentGrid[row].length; col++) {
-            if (currentGrid[row][col] === 2) {
-                totalBlueTiles++;
+    if (currentGameMode === 'color') {
+        for (let row = 0; row < currentGrid.length; row++) {
+            for (let col = 0; col < currentGrid[row].length; col++) {
+                if (currentGrid[row][col] === 2) totalBlueTiles++;
             }
         }
     }
@@ -282,25 +453,46 @@ function loadLevel(levelIndex) {
 }
 
 function levelComplete() {
-    if (currentLevelIndex === unlockedLevelIndex && currentLevelIndex < levels.length - 1) {
-        unlockedLevelIndex++;
-        localStorage.setItem('myGame_unlockedLevel', unlockedLevelIndex);
+    const unlockedLevelIndex = getUnlockedIndex();
+    const activePool = getActiveLevelsFlattened();
+
+    // Unlock the next level securely
+    if (currentLevelIndex === unlockedLevelIndex && currentLevelIndex < activePool.length - 1) {
+        setUnlockedIndex(unlockedLevelIndex + 1);
     }
     
     buildMenu(); 
-
     gameScreen.style.display = 'none';
     completionScreen.style.display = 'block';
 
     const nextBtn = document.getElementById('nextLevelBtn');
-    if (currentLevelIndex >= levels.length - 1) {
+    if (currentLevelIndex >= activePool.length - 1) {
         nextBtn.style.display = 'none';
     } else {
         nextBtn.style.display = 'inline-block';
     }
 }
 
-// Button Listeners
+// --- NAVIGATION LISTENERS ---
+colorModeBtn.addEventListener('click', () => {
+    currentGameMode = 'color';
+    buildMenu();
+    modeScreen.style.display = 'none';
+    menuScreen.style.display = 'block';
+});
+
+shapeModeBtn.addEventListener('click', () => {
+    currentGameMode = 'shape';
+    buildMenu();
+    modeScreen.style.display = 'none';
+    menuScreen.style.display = 'block';
+});
+
+backToModesBtn.addEventListener('click', () => {
+    menuScreen.style.display = 'none';
+    modeScreen.style.display = 'block';
+});
+
 document.getElementById('backBtn').addEventListener('click', () => {
     gameScreen.style.display = 'none';
     menuScreen.style.display = 'block';
@@ -315,46 +507,122 @@ document.getElementById('nextLevelBtn').addEventListener('click', () => {
     loadLevel(currentLevelIndex + 1);
 });
 
-// Run once to set up the menu on page load
 buildMenu();
 
-// --- DRAWING THE GRID ---
+// --- ENGINE RENDERING LAYER ---
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    for (let row = 0; row < currentGrid.length; row++) {
-        for (let col = 0; col < currentGrid[row].length; col++) {
-            let cellType = currentGrid[row][col];
-            if (cellType === -1) continue; 
+    if (currentGameMode === 'color') {
+        for (let row = 0; row < currentGrid.length; row++) {
+            for (let col = 0; col < currentGrid[row].length; col++) {
+                let cellType = currentGrid[row][col];
+                if (cellType === -1) continue; 
 
-            let xPos = offsetX + (col * tileSize);
-            let yPos = offsetY + (row * tileSize);
+                let xPos = offsetX + (col * tileSize);
+                let yPos = offsetY + (row * tileSize);
 
-            ctx.fillStyle = colors[cellType];
-            ctx.fillRect(xPos, yPos, tileSize, tileSize);
-            
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(xPos, yPos, tileSize, tileSize);
+                ctx.fillStyle = colors[cellType];
+                ctx.fillRect(xPos, yPos, tileSize, tileSize);
+                
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(xPos, yPos, tileSize, tileSize);
+            }
+        }
+    } 
+    else if (currentGameMode === 'shape') {
+        for (let row = 0; row < currentGrid.length - 1; row++) {
+            for (let col = 0; col < currentGrid[row].length - 1; col++) {
+                let padding = 14;
+                let x = offsetX + (col * tileSize) + padding;
+                let y = offsetY + (row * tileSize) + padding;
+                let size = tileSize - (padding * 2);
+
+                ctx.fillStyle = '#282828';
+                ctx.fillRect(x, y, size, size);
+                
+                let shapeType = currentCells[row] ? currentCells[row][col] : 0;
+                if (shapeType > 0) {
+                    ctx.save();
+                    let cx = x + size / 2;
+                    let cy = y + size / 2;
+
+                    if (shapeType === 1) { // Black Square
+                        ctx.fillStyle = '#000000';
+                        ctx.strokeStyle = '#444';
+                        ctx.lineWidth = 2;
+                        ctx.fillRect(cx - 14, cy - 14, 28, 28);
+                        ctx.strokeRect(cx - 14, cy - 14, 28, 28);
+                    } 
+                    else if (shapeType === 2) { // White Square
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(cx - 14, cy - 14, 28, 28);
+                    } 
+                    else if (shapeType === 3) { // Star Symbol
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy - 18);
+                        ctx.lineTo(cx + 14, cy);
+                        ctx.lineTo(cx, cy + 18);
+                        ctx.lineTo(cx - 14, cy);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+            }
+        }
+
+        ctx.strokeStyle = '#444446';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        for (let row = 0; row < currentGrid.length; row++) {
+            for (let col = 0; col < currentGrid[row].length; col++) {
+                let x1 = offsetX + col * tileSize;
+                let y1 = offsetY + row * tileSize;
+
+                if (col + 1 < currentGrid[row].length) {
+                    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + tileSize, y1); ctx.stroke();
+                }
+                if (row + 1 < currentGrid.length) {
+                    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1, y1 + tileSize); ctx.stroke();
+                }
+            }
+        }
+
+        for (let row = 0; row < currentGrid.length; row++) {
+            for (let col = 0; col < currentGrid[row].length; col++) {
+                if (currentGrid[row][col] === 4) {
+                    let x = offsetX + col * tileSize;
+                    let y = offsetY + row * tileSize;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 18, 0, Math.PI * 2);
+                    ctx.fillStyle = colors[4]; 
+                    ctx.fill();
+                    ctx.strokeStyle = '#111';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            }
         }
     }
 }
 
-// --- INTERACTION & COMPLETION LOGIC ---
+// --- CORE INTERACTION MECHANICS ---
 let isDrawing = false;
 let startTile = null;
 
 function getMousePos(e) {
     const rect = canvas.getBoundingClientRect();
-    return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-    };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
 function getTileAtPos(x, y) {
-    const col = Math.floor((x - offsetX) / tileSize);
-    const row = Math.floor((y - offsetY) / tileSize);
+    const col = currentGameMode === 'color' ? Math.floor((x - offsetX) / tileSize) : Math.round((x - offsetX) / tileSize);
+    const row = currentGameMode === 'color' ? Math.floor((y - offsetY) / tileSize) : Math.round((y - offsetY) / tileSize);
     
     if (row >= 0 && row < currentGrid.length && col >= 0 && col < currentGrid[0].length) {
         return { row: row, col: col, type: currentGrid[row][col] };
@@ -363,8 +631,9 @@ function getTileAtPos(x, y) {
 }
 
 canvas.addEventListener('mousedown', (e) => {
-    // Reset grid to original state on new attempt
-    currentGrid = JSON.parse(JSON.stringify(baseGrid));
+    if (currentGameMode === 'color') {
+        currentGrid = JSON.parse(JSON.stringify(baseGrid));
+    }
     drawGrid();
 
     isDrawing = true;
@@ -378,8 +647,14 @@ canvas.addEventListener('mousedown', (e) => {
     hasIntersectsInCurrentBlueVisit = false;
     visitedTiles = []; 
     drawnPoints = [pos]; 
-    
+    currentMousePos = pos;
+
     if (clickedTile && clickedTile.type === 4) {
+        if (currentGameMode === 'shape') {
+            let nodeX = offsetX + clickedTile.col * tileSize;
+            let nodeY = offsetY + clickedTile.row * tileSize;
+            if (Math.sqrt((pos.x - nodeX)**2 + (pos.y - nodeY)**2) > 28) { isDrawing = false; return; }
+        }
         startTile = clickedTile;
         visitedTiles.push(clickedTile); 
     } else {
@@ -393,174 +668,146 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mousemove', (e) => {
     if (!isDrawing) return;
     const pos = getMousePos(e);
+    currentMousePos = pos;
 
-    const newPoint = pos;
-    const currentPoint = drawnPoints[drawnPoints.length - 1];
     const currentTile = getTileAtPos(pos.x, pos.y);
 
-    // SMOOTHING / MINIMUM DISTANCE CHECK
-    const dx = newPoint.x - currentPoint.x;
-    const dy = newPoint.y - currentPoint.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (currentGameMode === 'color') {
+        const newPoint = pos;
+        const currentPoint = drawnPoints[drawnPoints.length - 1];
+        const dx = newPoint.x - currentPoint.x;
+        const dy = newPoint.y - currentPoint.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-    let intersectionsThisFrame = 0;
+        let intersectionsThisFrame = 0;
 
-    if (distance > 8) {
-        if (drawnPoints.length > 2) {
-            for (let i = 0; i < drawnPoints.length - 2; i++) {
-                const p1 = drawnPoints[i];
-                const p2 = drawnPoints[i + 1];
-
-                if (linesIntersect(p1, p2, currentPoint, newPoint)) {
-                    intersectionsThisFrame++;
-                    
-                    // Mark if an intersection happens inside an already-visited blue tile
-                    if (currentTile && currentTile.type === 2 && crossedBlueTiles.has(`${currentTile.row},${currentTile.col}`)) {
-                        hasIntersectsInCurrentBlueVisit = true;
+        if (distance > 8) {
+            if (drawnPoints.length > 2) {
+                for (let i = 0; i < drawnPoints.length - 2; i++) {
+                    if (linesIntersect(drawnPoints[i], drawnPoints[i+1], currentPoint, newPoint)) {
+                        intersectionsThisFrame++;
+                        if (currentTile && currentTile.type === 2 && crossedBlueTiles.has(`${currentTile.row},${currentTile.col}`)) {
+                            hasIntersectsInCurrentBlueVisit = true;
+                        }
                     }
                 }
             }
-        }
 
-        if (intersectionsThisFrame > 0) {
-            currentIntersectionCount += intersectionsThisFrame;
-            // Rule check: Have we crossed our line more times than unique purple tokens collected?
-            if (currentIntersectionCount > crossedOverpassTiles.size) {
-                isDrawing = false; 
-                drawGrid();        
-                return;            
+            if (intersectionsThisFrame > 0) {
+                currentIntersectionCount += intersectionsThisFrame;
+                if (currentIntersectionCount > crossedOverpassTiles.size) { isDrawing = false; drawGrid(); return; }
             }
-        }
-        drawnPoints.push(newPoint); 
-    }
-
-    if (!currentTile || currentTile.type === -1 || currentTile.type === 1) {
-        isDrawing = false; 
-        drawGrid();        
-        return;            
-    }
-
-    if (currentTile.type === 4) {
-        const isStartTile = (startTile && currentTile.row === startTile.row && currentTile.col === startTile.col);
-        
-        if (!isStartTile) {
-            const allBluesCrossed = (crossedBlueTiles.size === totalBlueTiles);
-            if (!allBluesCrossed) {
-                isDrawing = false; 
-                drawGrid();
-                return;
-            }
-        }
-    }
-
-    const lastTile = visitedTiles[visitedTiles.length - 1];
-    
-    if (currentTile.row !== lastTile.row || currentTile.col !== lastTile.col) {
-        
-        if (lastTile.type === 4 && (lastTile.row !== startTile.row || lastTile.col !== startTile.col)) {
-            isDrawing = false; 
-            drawGrid();
-            return;
+            drawnPoints.push(newPoint); 
         }
 
-        // PREVIOUS TILE CHECKING LOGIC
-        if (visitedTiles.length >= 2) {
-            const prevTile = lastTile; 
-            const prePrevTile = visitedTiles[visitedTiles.length - 2]; 
+        if (!currentTile || currentTile.type === -1 || currentTile.type === 1) { isDrawing = false; drawGrid(); return; }
 
-            const dRowIn = prevTile.row - prePrevTile.row;
-            const dColIn = prevTile.col - prePrevTile.col;
-            const dRowOut = currentTile.row - prevTile.row;
-            const dColOut = currentTile.col - prevTile.col;
+        if (currentTile.type === 4) {
+            const isStartTile = (startTile && currentTile.row === startTile.row && currentTile.col === startTile.col);
+            if (!isStartTile && crossedBlueTiles.size !== totalBlueTiles) { isDrawing = false; drawGrid(); return; }
+        }
 
-            // YELLOW TILE: Must turn
-            if (prevTile.type === 3) {
-                if (dRowIn === dRowOut && dColIn === dColOut) {
-                    isDrawing = false; 
-                    drawGrid();
-                    return;
-                }
+        const lastTile = visitedTiles[visitedTiles.length - 1];
+        if (currentTile.row !== lastTile.row || currentTile.col !== lastTile.col) {
+            if (lastTile.type === 4 && (lastTile.row !== startTile.row || lastTile.col !== startTile.col)) { isDrawing = false; drawGrid(); return; }
+
+            if (visitedTiles.length >= 2) {
+                const prevTile = lastTile; 
+                const prePrevTile = visitedTiles[visitedTiles.length - 2]; 
+                const dRowIn = prevTile.row - prePrevTile.row; const dColIn = prevTile.col - prePrevTile.col;
+                const dRowOut = currentTile.row - prevTile.row; const dColOut = currentTile.col - prevTile.col;
+
+                if (prevTile.type === 3 && dRowIn === dRowOut && dColIn === dColOut) { isDrawing = false; drawGrid(); return; }
+                if (prevTile.type === 6 && (dRowIn !== dRowOut || dColIn !== dColOut)) { isDrawing = false; drawGrid(); return; }
             }
 
-            // CYAN TILE: Must go straight
-            if (prevTile.type === 6) {
-                if (dRowIn !== dRowOut || dColIn !== dColOut) {
-                    isDrawing = false; 
-                    drawGrid();
-                    return;
-                }
-            }
-        }
+            if (lastTile.type === 2 && isCurrentVisitARevisit && !hasIntersectsInCurrentBlueVisit) { isDrawing = false; drawGrid(); return; }
 
-        // EXITING TILE GATEKEEPER: If leaving a revisited blue tile, verify an intersection actually happened
-        if (lastTile.type === 2 && isCurrentVisitARevisit) {
-            if (!hasIntersectsInCurrentBlueVisit) {
-                isDrawing = false; 
-                drawGrid();        
-                return;   
-            }
-        }
+            visitedTiles.push(currentTile);
 
-        visitedTiles.push(currentTile);
-
-        // ORANGE TILE LOGIC (THE SWAP)
-        if (currentTile.type === 5) {
-            for (let r = 0; r < currentGrid.length; r++) {
-                for (let c = 0; c < currentGrid[r].length; c++) {
-                    if (currentGrid[r][c] === 0) {
-                        currentGrid[r][c] = 1;
-                    } else if (currentGrid[r][c] === 1) {
-                        currentGrid[r][c] = 0;
+            if (currentTile.type === 5) {
+                for (let r = 0; r < currentGrid.length; r++) {
+                    for (let c = 0; c < currentGrid[r].length; c++) {
+                        if (currentGrid[r][c] === 0) currentGrid[r][c] = 1;
+                        else if (currentGrid[r][c] === 1) currentGrid[r][c] = 0;
                     }
                 }
+                drawGrid(); redrawPath();   
             }
-            drawGrid();     
-            redrawPath();   
-        }
 
-        // BLUE TILE HANDLING
-        if (currentTile.type === 2) {
-            const tileKey = `${currentTile.row},${currentTile.col}`;
-            
-            if (crossedBlueTiles.has(tileKey)) {
-                // This is a re-entry. Initialize tracking flags.
-                isCurrentVisitARevisit = true;
-                hasIntersectsInCurrentBlueVisit = (intersectionsThisFrame > 0);
-            } else {
-                // First time visit is always allowed naturally.
-                isCurrentVisitARevisit = false;
+            if (currentTile.type === 2) {
+                const tileKey = `${currentTile.row},${currentTile.col}`;
+                isCurrentVisitARevisit = crossedBlueTiles.has(tileKey);
                 hasIntersectsInCurrentBlueVisit = false;
+                crossedBlueTiles.add(tileKey);
             }
-            
-            crossedBlueTiles.add(tileKey);
-        }
 
-        // PURPLE TILE COLLECTION LOGIC
-        if (currentTile.type === 7) {
-            const tileKey = `${currentTile.row},${currentTile.col}`;
-            crossedOverpassTiles.add(tileKey);
+            if (currentTile.type === 7) crossedOverpassTiles.add(`${currentTile.row},${currentTile.col}`);
         }
+        drawGrid();
+        redrawPath();
+    } 
+    else if (currentGameMode === 'shape') {
+        if (!currentTile || currentTile.type === -1) return;
+
+        let targetX = offsetX + currentTile.col * tileSize;
+        let targetY = offsetY + currentTile.row * tileSize;
+        let gapToIntersection = Math.sqrt((pos.x - targetX)**2 + (pos.y - targetY)**2);
+
+        if (gapToIntersection < 32) {
+            const lastTile = visitedTiles[visitedTiles.length - 1];
+
+            if (currentTile.row !== lastTile.row || currentTile.col !== lastTile.col) {
+                const dRow = Math.abs(currentTile.row - lastTile.row);
+                const dCol = Math.abs(currentTile.col - lastTile.col);
+
+                if (dRow + dCol === 1) {
+                    if (visitedTiles.length >= 2) {
+                        const previousNode = visitedTiles[visitedTiles.length - 2];
+                        if (currentTile.row === previousNode.row && currentTile.col === previousNode.col) {
+                            visitedTiles.pop();
+                            drawGrid();
+                            redrawPath();
+                            return;
+                        }
+                    }
+
+                    if (visitedTiles.some(t => t.row === currentTile.row && t.col === currentTile.col)) {
+                        return;
+                    }
+
+                    visitedTiles.push(currentTile);
+                }
+            }
+        }
+        drawGrid();
+        redrawPath();
     }
-    
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
 });
+
 canvas.addEventListener('mouseup', (e) => {
     if (!isDrawing) return;
     isDrawing = false;
     
     const pos = getMousePos(e);
     const endTile = getTileAtPos(pos.x, pos.y);
-    const allBluesCrossed = (crossedBlueTiles.size === totalBlueTiles);
 
-    if (endTile && endTile.type === 4 && startTile && (endTile.row !== startTile.row || endTile.col !== startTile.col) && allBluesCrossed) {
-        levelComplete();
+    if (endTile && endTile.type === 4 && startTile && (endTile.row !== startTile.row || endTile.col !== startTile.col)) {
+        
+        // --- WIN CONDITION CHECKS ---
+        if (currentGameMode === 'shape') {
+            if (validateShapeRules()) {
+                levelComplete();
+            } else {
+                // Flash the screen or just reset if they failed the rules
+                drawGrid();
+            }
+        } else if (crossedBlueTiles.size === totalBlueTiles) {
+            levelComplete(); 
+        }
+        
     } else {
-        drawGrid();
+        drawGrid(); // Resets path if dropped early
     }
 });
 
@@ -569,25 +816,153 @@ canvas.addEventListener('mouseleave', () => {
     drawGrid(); 
 });
 
-// --- UTILITY FUNCTIONS ---
-
+// --- UTILITY VECTOR DRAW LAYER ---
 function redrawPath() {
-    if (drawnPoints.length === 0) return;
+    if (visitedTiles.length === 0) return;
+    
     ctx.beginPath();
-    ctx.moveTo(drawnPoints[0].x, drawnPoints[0].y);
-    for (let i = 1; i < drawnPoints.length; i++) {
-        ctx.lineTo(drawnPoints[i].x, drawnPoints[i].y);
+    let startX = currentGameMode === 'color' ? visitedTiles[0].col * tileSize + tileSize/2 : visitedTiles[0].col * tileSize;
+    let startY = currentGameMode === 'color' ? visitedTiles[0].row * tileSize + tileSize/2 : visitedTiles[0].row * tileSize;
+    ctx.moveTo(offsetX + startX, offsetY + startY);
+
+    if (currentGameMode === 'color') {
+        for (let i = 1; i < drawnPoints.length; i++) {
+            ctx.lineTo(drawnPoints[i].x, drawnPoints[i].y);
+        }
+    } else {
+        for (let i = 1; i < visitedTiles.length; i++) {
+            ctx.lineTo(offsetX + visitedTiles[i].col * tileSize, offsetY + visitedTiles[i].row * tileSize);
+        }
+        if (isDrawing && currentMousePos) {
+            ctx.lineTo(currentMousePos.x, currentMousePos.y);
+        }
     }
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 5;
+
+    ctx.strokeStyle = currentGameMode === 'color' ? 'white' : '#0098ff'; 
+    ctx.lineWidth = currentGameMode === 'color' ? 5 : 12;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
 }
 
 function linesIntersect(p1, p2, p3, p4) {
-    function ccw(A, B, C) {
-        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
-    }
+    function ccw(A, B, C) { return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x); }
     return (ccw(p1, p3, p4) !== ccw(p2, p3, p4)) && (ccw(p1, p2, p3) !== ccw(p1, p2, p4));
+}
+
+// --- SHAPE MODE RULE VALIDATION ---
+function validateShapeRules() {
+    // 1. Build a record of every grid line the player drew over
+    let drawnEdges = new Set();
+    
+    function getEdgeString(r1, c1, r2, c2) {
+        // Sort the coordinates so direction doesn't matter (A to B is the same as B to A)
+        if (r1 < r2 || (r1 === r2 && c1 < c2)) return `${r1},${c1}-${r2},${c2}`;
+        return `${r2},${c2}-${r1},${c1}`;
+    }
+
+    for (let i = 0; i < visitedTiles.length - 1; i++) {
+        let t1 = visitedTiles[i];
+        let t2 = visitedTiles[i+1];
+        drawnEdges.has(getEdgeString(t1.row, t1.col, t2.row, t2.col));
+        drawnEdges.add(getEdgeString(t1.row, t1.col, t2.row, t2.col));
+    }
+
+    let totalTriangles = 0;
+
+    // 2. Check Black and White Square edge rules
+    for (let r = 0; r < currentCells.length; r++) {
+        for (let c = 0; c < currentCells[r].length; c++) {
+            let cellType = currentCells[r][c];
+            if (cellType === 0) continue;
+
+            // Check the 4 borders of the current cell
+            let topDrawn = drawnEdges.has(getEdgeString(r, c, r, c+1));
+            let bottomDrawn = drawnEdges.has(getEdgeString(r+1, c, r+1, c+1));
+            let leftDrawn = drawnEdges.has(getEdgeString(r, c, r+1, c));
+            let rightDrawn = drawnEdges.has(getEdgeString(r, c+1, r+1, c+1));
+            
+            let edgeCount = (topDrawn ? 1 : 0) + (bottomDrawn ? 1 : 0) + (leftDrawn ? 1 : 0) + (rightDrawn ? 1 : 0);
+
+            if (cellType === 1) { // Black Square (Exactly 2 CONNECTED edges)
+                if (edgeCount !== 2) return false; 
+                if ((topDrawn && bottomDrawn) || (leftDrawn && rightDrawn)) return false; // Opposite edges = fail
+            }
+            else if (cellType === 2) { // White Square (Exactly 2 OPPOSITE edges)
+                if (edgeCount !== 2) return false;
+                if (!((topDrawn && bottomDrawn) || (leftDrawn && rightDrawn))) return false; // Connected edges = fail
+            }
+            else if (cellType === 3) {
+                totalTriangles++;
+            }
+        }
+    }
+
+    // 3. Check Triangle Separation Rule (Flood Fill)
+    if (totalTriangles > 1) {
+        // Create a blank map to track which cells we've checked
+        let visitedCells = Array(currentCells.length).fill(null).map(() => Array(currentCells[0].length).fill(false));
+        let regionTriangleCounts = [];
+
+        for (let r = 0; r < currentCells.length; r++) {
+            for (let c = 0; c < currentCells[r].length; c++) {
+                if (!visitedCells[r][c]) {
+                    
+                    // Start a new flood fill region
+                    let currentRegionTriangles = 0;
+                    let queue = [{r, c}];
+                    visitedCells[r][c] = true;
+
+                    while (queue.length > 0) {
+                        let curr = queue.shift();
+                        if (currentCells[curr.r][curr.c] === 3) currentRegionTriangles++;
+
+                        // Check Up
+                        if (curr.r > 0 && !visitedCells[curr.r-1][curr.c]) {
+                            if (!drawnEdges.has(getEdgeString(curr.r, curr.c, curr.r, curr.c+1))) {
+                                visitedCells[curr.r-1][curr.c] = true; queue.push({r: curr.r-1, c: curr.c});
+                            }
+                        }
+                        // Check Down
+                        if (curr.r < currentCells.length - 1 && !visitedCells[curr.r+1][curr.c]) {
+                            if (!drawnEdges.has(getEdgeString(curr.r+1, curr.c, curr.r+1, curr.c+1))) {
+                                visitedCells[curr.r+1][curr.c] = true; queue.push({r: curr.r+1, c: curr.c});
+                            }
+                        }
+                        // Check Left
+                        if (curr.c > 0 && !visitedCells[curr.r][curr.c-1]) {
+                            if (!drawnEdges.has(getEdgeString(curr.r, curr.c, curr.r+1, curr.c))) {
+                                visitedCells[curr.r][curr.c-1] = true; queue.push({r: curr.r, c: curr.c-1});
+                            }
+                        }
+                        // Check Right
+                        if (curr.c < currentCells[0].length - 1 && !visitedCells[curr.r][curr.c+1]) {
+                            if (!drawnEdges.has(getEdgeString(curr.r, curr.c+1, curr.r+1, curr.c+1))) {
+                                visitedCells[curr.r][curr.c+1] = true; queue.push({r: curr.r, c: curr.c+1});
+                            }
+                        }
+                    }
+                    
+                    // Only record regions that actually contain triangles
+                    if (currentRegionTriangles > 0) {
+                        regionTriangleCounts.push(currentRegionTriangles);
+                    }
+                }
+            }
+        }
+
+        // Rule Validation: Triangles must be split into EXACTLY two groups
+        if (regionTriangleCounts.length !== 2) return false;
+        
+        let target1 = Math.floor(totalTriangles / 2);
+        let target2 = Math.ceil(totalTriangles / 2);
+        
+        regionTriangleCounts.sort((a,b) => a - b);
+        
+        if (regionTriangleCounts[0] !== target1 || regionTriangleCounts[1] !== target2) {
+            return false;
+        }
+    }
+
+    return true; // All rules passed!
 }

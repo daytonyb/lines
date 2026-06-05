@@ -25,7 +25,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
             overflow-y: auto;
         }
 
@@ -45,9 +45,10 @@
         label {
             font-size: 14px;
             color: #aaa;
+            font-weight: bold;
         }
 
-        input[type="number"] {
+        input[type="number"], select {
             background-color: #444;
             border: 1px solid #555;
             color: white;
@@ -68,17 +69,9 @@
             transition: background 0.2s;
         }
 
-        button:hover {
-            background-color: #0098ff;
-        }
-
-        button.secondary {
-            background-color: #444;
-            border: 1px solid #555;
-        }
-        button.secondary:hover {
-            background-color: #555;
-        }
+        button:hover { background-color: #0098ff; }
+        button.secondary { background-color: #444; border: 1px solid #555; }
+        button.secondary:hover { background-color: #555; }
 
         /* Palette Styling */
         .palette {
@@ -99,20 +92,17 @@
             user-select: none;
         }
 
-        .palette-item:hover {
-            background-color: #444;
-        }
-
-        .palette-item.active {
-            border-color: #007acc;
-            background-color: #484848;
-        }
+        .palette-item:hover { background-color: #444; }
+        .palette-item.active { border-color: #007acc; background-color: #484848; }
 
         .color-swatch {
             width: 24px;
             height: 24px;
             border-radius: 4px;
             border: 1px solid #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Workspace Grid Styling */
@@ -130,32 +120,29 @@
 
         #gridContainer {
             display: grid;
-            gap: 2px;
             background-color: #222;
-            padding: 4px;
-            border-radius: 4px;
             user-select: none;
+            transition: all 0.3s ease;
         }
 
         .grid-cell {
-            width: 50px;
-            height: 50px;
             box-sizing: border-box;
             cursor: pointer;
-            border: 1px solid rgba(0,0,0,0.15);
             transition: transform 0.05s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .grid-cell:hover {
-            transform: scale(1.02);
+            transform: scale(1.05);
             z-index: 2;
-            box-shadow: 0 0 4px rgba(255,255,255,0.3);
+            box-shadow: 0 0 6px rgba(255,255,255,0.4);
         }
 
-        /* Output Window */
         textarea {
             width: 100%;
-            height: 120px;
+            height: 140px;
             background-color: #1a1a1a;
             color: #32cd32;
             border: 1px solid #444;
@@ -166,18 +153,36 @@
             box-sizing: border-box;
             border-radius: 4px;
         }
+        
+        #layerControl { display: none; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <h2>Level Editor</h2>
+
+        <div class="control-group">
+            <label>Target Game Mode</label>
+            <select id="modeSelector">
+                <option value="color">Color Mode</option>
+                <option value="shape">Shape Mode</option>
+            </select>
+        </div>
+
+        <div class="control-group" id="layerControl">
+            <label style="color: #00ffff;">Shape Editing Layer</label>
+            <select id="layerSelector">
+                <option value="grid">Line Intersections & Terminals</option>
+                <option value="cells">Cell Shapes (Black/White Squares)</option>
+            </select>
+        </div>
         
         <div class="control-group">
-            <label>Grid Size</label>
+            <label id="gridSizeLabel">Grid Bounds (Columns x Rows)</label>
             <div style="display: flex; gap: 8px;">
-                <input type="number" id="inputRows" value="4" min="1" max="20" style="width: 50%;">
                 <input type="number" id="inputCols" value="5" min="1" max="20" style="width: 50%;">
+                <input type="number" id="inputRows" value="4" min="1" max="20" style="width: 50%;">
             </div>
             <button id="resizeBtn">Apply Grid Size</button>
         </div>
@@ -190,13 +195,13 @@
         <hr style="border: 0; border-top: 1px solid #444; width: 100%;">
 
         <div class="control-group">
-            <label>Level Array Code</label>
-            <textarea id="outputData" placeholder="Grid code will appear here..."></textarea>
+            <label>Level Code Output</label>
+            <textarea id="outputData" placeholder="Generated code will appear here..."></textarea>
             <button id="copyBtn">Copy to Clipboard</button>
-            <button id="importBtn" class="secondary">Import Formatted Code</button>
+            <button id="importBtn" class="secondary">Import Map Data</button>
         </div>
         
-        <button id="clearBtn" class="secondary" style="margin-top: auto; border-color: #cc2424; color: #ff6b6b;">Clear Grid (All Grey)</button>
+        <button id="clearBtn" class="secondary" style="margin-top: auto; border-color: #cc2424; color: #ff6b6b;">Clear Active Layer</button>
     </div>
 
     <div id="workspace">
@@ -204,61 +209,98 @@
     </div>
 
     <script>
-// Game configuration colors
-        const colors = {
-            '-1': '#1e1e1e', // Void
-            0: '#444444',    // Grey (Normal)
-            1: '#ff4444',    // Red (Avoid)
-            2: '#4444ff',    // Blue (Must Cross)
-            3: '#ffcc00',    // Yellow (Forced Turn)
-            4: '#32cd32',    // Green (Start/End)
-            5: '#ff8800',    // Orange (Toggle 0/1)
-            6: '#00ffff',    // Cyan (Forced Straight)
-            7: '#9932cc'     // NEW: Purple (Overpass)
+        // --- DATA & PALETTES ---
+        const palettes = {
+            color: {
+                '-1': { hex: '#1e1e1e', name: 'Void (-1)', render: '' },
+                0: { hex: '#444444', name: 'Grey (0)', render: '' },
+                1: { hex: '#ff4444', name: 'Red (1)', render: '' },
+                2: { hex: '#4444ff', name: 'Blue (2)', render: '' },
+                3: { hex: '#ffcc00', name: 'Yellow (3)', render: '' },
+                4: { hex: '#32cd32', name: 'Start/End (4)', render: '' },
+                5: { hex: '#ff8800', name: 'Toggle (5)', render: '' },
+                6: { hex: '#00ffff', name: 'Straight (6)', render: '' },
+                7: { hex: '#9932cc', name: 'Overpass (7)', render: '' }
+            },
+            shape_grid: {
+                '-1': { hex: '#1e1e1e', name: 'No Path (-1)', render: `<div style="width: 14px; height: 14px; border: 1px dashed #666; border-radius: 50%;"></div>` },
+                0: { hex: '#444446', name: 'Node / Path (0)', render: `<div style="width: 16px; height: 16px; background-color: #444446; border-radius: 50%;"></div>` },
+                4: { hex: '#32cd32', name: 'Terminal (4)', render: `<div style="width: 28px; height: 28px; background-color: #32cd32; border-radius: 50%; border: 3px solid #111;"></div>` }
+            },
+            shape_cells: {
+                0: { hex: '#282828', name: 'Empty (0)', render: '' },
+                1: { hex: '#000000', name: 'Black Square (1)', render: `<div style="width: 24px; height: 24px; background-color: #000; border: 2px solid #555;"></div>` },
+                2: { hex: '#ffffff', name: 'White Square (2)', render: `<div style="width: 24px; height: 24px; background-color: #fff;"></div>` },
+                3: { hex: '#ffcc00', name: 'Star Rule (3)', render: `<div style="width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 24px solid #ffcc00;"></div>` }
+            }
         };
 
-        const tileNames = {
-            '-1': 'Void (-1)',
-            0: 'Normal (0)',
-            1: 'Avoid (1)',
-            2: 'Must Cross (2)',
-            3: 'Turn (3)',
-            4: 'Spawn (4)',
-            5: 'Toggle (5)',
-            6: 'Straight (6)',
-            7: 'Overpass (7)' // NEW
-        };
-
-        // Editor States
+        // --- EDITOR STATE ---
         let rows = 4;
         let cols = 5;
-        let currentGrid = [];
-        let selectedType = 4; // Default to Green Start/End block
+        let selectedType = 4;
         let isDrawing = false;
+        
+        let colorGridData = [];
+        let shapeGridData = [];
+        let shapeCellsData = []; // The layer for the squares!
 
         // UI Selectors
-        const gridContainer = document.getElementById('gridContainer');
+        const modeSelector = document.getElementById('modeSelector');
+        const layerSelector = document.getElementById('layerSelector');
+        const layerControl = document.getElementById('layerControl');
         const paletteContainer = document.getElementById('paletteContainer');
+        const gridContainer = document.getElementById('gridContainer');
         const outputData = document.getElementById('outputData');
         const inputRows = document.getElementById('inputRows');
         const inputCols = document.getElementById('inputCols');
 
-        // Setup Palette View
+        // --- INITIALIZATION ---
+        function initArrays() {
+            colorGridData = Array(rows).fill(null).map(() => Array(cols).fill(0));
+            shapeGridData = Array(rows).fill(null).map(() => Array(cols).fill(0));
+            // Cells matrix is always 1 row/col smaller than the intersections grid
+            shapeCellsData = Array(Math.max(1, rows-1)).fill(null).map(() => Array(Math.max(1, cols-1)).fill(0));
+        }
+
+        function getActivePalette() {
+            if (modeSelector.value === 'color') return palettes.color;
+            return layerSelector.value === 'grid' ? palettes.shape_grid : palettes.shape_cells;
+        }
+
+        function getActiveGridReference() {
+            if (modeSelector.value === 'color') return colorGridData;
+            return layerSelector.value === 'grid' ? shapeGridData : shapeCellsData;
+        }
+
         function buildPalette() {
+            const activePalette = getActivePalette();
             let html = '';
-            Object.keys(colors).forEach(key => {
+            
+            // Auto-select a valid tool when switching palettes
+            if (!activePalette[selectedType]) {
+                selectedType = parseInt(Object.keys(activePalette)[0]);
+            }
+
+            Object.keys(activePalette).forEach(key => {
                 const typeId = parseInt(key);
                 const activeClass = typeId === selectedType ? 'active' : '';
+                const baseStyle = `background-color: ${activePalette[key].hex}; ${typeId === -1 ? 'border: 1px dashed #555;' : ''}`;
+                
+                const innerRender = modeSelector.value === 'shape' ? activePalette[key].render : '';
+                const swatchStyle = modeSelector.value === 'shape' ? `background-color: transparent; border: 1px solid #444;` : baseStyle;
+
                 html += `
                     <div class="palette-item ${activeClass}" data-type="${typeId}">
-                        <div class="color-swatch" style="background-color: ${colors[key]}; ${typeId === -1 ? 'border: 1px dashed #555;' : ''}"></div>
-                        <span style="font-size: 12px;">${tileNames[key]}</span>
+                        <div class="color-swatch" style="${swatchStyle}">
+                            ${innerRender}
+                        </div>
+                        <span style="font-size: 12px;">${activePalette[key].name}</span>
                     </div>
                 `;
             });
             paletteContainer.innerHTML = html;
 
-            // Bind palette clicks
             document.querySelectorAll('.palette-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     document.querySelectorAll('.palette-item').forEach(p => p.classList.remove('active'));
@@ -268,51 +310,55 @@
             });
         }
 
-        // Initialize empty or resized internal tracking grid array
-        function initGridArray() {
-            let newGrid = [];
-            for (let r = 0; r < rows; r++) {
-                let rowArray = [];
-                for (let c = 0; c < cols; c++) {
-                    // Retain old value if it fits within new dimensions, else default to 0 (Grey)
-                    if (currentGrid[r] && currentGrid[r][c] !== undefined) {
-                        rowArray.push(currentGrid[r][c]);
-                    } else {
-                        rowArray.push(0);
-                    }
-                }
-                newGrid.push(rowArray);
-            }
-            currentGrid = newGrid;
-        }
+        function drawWorkspace() {
+            const activeGrid = getActiveGridReference();
+            const currentRows = activeGrid.length;
+            const currentCols = activeGrid[0].length;
 
-        // Generate the DOM grid workspace layout
-        function drawWorkspaceGrid() {
             gridContainer.innerHTML = '';
-            gridContainer.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+            gridContainer.style.gridTemplateColumns = `repeat(${currentCols}, 50px)`;
+            gridContainer.style.gridTemplateRows = `repeat(${currentRows}, 50px)`;
 
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const cellValue = currentGrid[r][c];
+            // Dynamically transform the wrapper layout based on current mode/layer
+            if (modeSelector.value === 'color') {
+                gridContainer.style.gap = '2px';
+                gridContainer.style.backgroundColor = '#222';
+                gridContainer.style.padding = '4px';
+                gridContainer.style.backgroundImage = 'none';
+            } 
+            else if (modeSelector.value === 'shape' && layerSelector.value === 'grid') {
+                // Intersections Layer: Setup CSS Wireframe mapping
+                gridContainer.style.gap = '0px';
+                gridContainer.style.backgroundColor = 'transparent';
+                gridContainer.style.padding = '25px';
+                gridContainer.style.backgroundImage = `
+                    linear-gradient(#333 6px, transparent 6px),
+                    linear-gradient(90deg, #333 6px, transparent 6px)
+                `;
+                gridContainer.style.backgroundSize = '50px 50px';
+                gridContainer.style.backgroundPosition = '47px 47px'; 
+            } 
+            else if (modeSelector.value === 'shape' && layerSelector.value === 'cells') {
+                // Cells Layer: Create floating panels
+                gridContainer.style.gap = '10px';
+                gridContainer.style.backgroundColor = '#121212';
+                gridContainer.style.padding = '20px';
+                gridContainer.style.backgroundImage = 'none';
+            }
+
+            for (let r = 0; r < currentRows; r++) {
+                for (let c = 0; c < currentCols; c++) {
+                    const cellValue = activeGrid[r][c];
                     const cell = document.createElement('div');
                     cell.classList.add('grid-cell');
-                    cell.style.backgroundColor = colors[cellValue];
-                    if (cellValue === -1) {
-                        cell.style.border = '1px dashed #333';
-                    }
+                    
                     cell.setAttribute('data-row', r);
                     cell.setAttribute('data-col', c);
 
-                    // Click to single paint
-                    cell.addEventListener('mousedown', (e) => {
-                        isDrawing = true;
-                        paintCell(cell);
-                    });
+                    renderCellVisuals(cell, cellValue);
 
-                    // Hold and drag over paint functionality
-                    cell.addEventListener('mouseenter', () => {
-                        if (isDrawing) paintCell(cell);
-                    });
+                    cell.addEventListener('mousedown', () => { isDrawing = true; paintCell(cell); });
+                    cell.addEventListener('mouseenter', () => { if (isDrawing) paintCell(cell); });
 
                     gridContainer.appendChild(cell);
                 }
@@ -320,77 +366,150 @@
             updateExportCode();
         }
 
+        // Applies targeted styling to a single cell
+        function renderCellVisuals(cell, cellValue) {
+            const activePalette = getActivePalette();
+            cell.innerHTML = activePalette[cellValue].render || '';
+
+            if (modeSelector.value === 'color') {
+                cell.style.backgroundColor = activePalette[cellValue] ? activePalette[cellValue].hex : '#222';
+                cell.style.border = cellValue === -1 ? '1px dashed #333' : '1px solid rgba(0,0,0,0.15)';
+                cell.style.borderRadius = '0px';
+            } 
+            else if (modeSelector.value === 'shape') {
+                if (layerSelector.value === 'grid') {
+                    cell.style.backgroundColor = 'transparent';
+                    cell.style.border = 'none';
+                } 
+                else if (layerSelector.value === 'cells') {
+                    cell.style.backgroundColor = '#282828';
+                    cell.style.border = '1px solid #444';
+                    cell.style.borderRadius = '6px';
+                }
+            }
+        }
+
         function paintCell(cellElement) {
             const r = parseInt(cellElement.getAttribute('data-row'));
             const c = parseInt(cellElement.getAttribute('data-col'));
+            const activeGrid = getActiveGridReference();
             
-            currentGrid[r][c] = selectedType;
-            cellElement.style.backgroundColor = colors[selectedType];
-            if (selectedType === -1) {
-                cellElement.style.border = '1px dashed #333';
-            } else {
-                cellElement.style.border = '1px solid rgba(0,0,0,0.15)';
-            }
+            activeGrid[r][c] = selectedType;
+            renderCellVisuals(cellElement, selectedType);
             updateExportCode();
         }
 
-        // Formats the 2D array output cleanly into script.js format style
         function updateExportCode() {
-            let outputLines = currentGrid.map(row => `    [${row.join(', ')}]`);
-            let formattedJS = `[\n${outputLines.join(',\n')}\n]`;
-            outputData.value = formattedJS;
+            if (modeSelector.value === 'color') {
+                let lines = colorGridData.map(row => `    [${row.join(', ')}]`);
+                outputData.value = `[\n${lines.join(',\n')}\n]`;
+            } else {
+                // Compile the dual-layer Object for Shape Mode!
+                let gridLines = shapeGridData.map(row => `        [${row.join(', ')}]`);
+                let cellLines = shapeCellsData.map(row => `        [${row.join(', ')}]`);
+                outputData.value = `{\n    grid: [\n${gridLines.join(',\n')}\n    ],\n    cells: [\n${cellLines.join(',\n')}\n    ]\n}`;
+            }
         }
 
-        // Global draw listeners to handle drag off-grid edge
+        // --- LISTENERS ---
         window.addEventListener('mouseup', () => { isDrawing = false; });
 
-        // Button Listener Actions
+        modeSelector.addEventListener('change', () => {
+            layerControl.style.display = modeSelector.value === 'shape' ? 'flex' : 'none';
+            buildPalette();
+            drawWorkspace();
+        });
+
+        layerSelector.addEventListener('change', () => {
+            buildPalette();
+            drawWorkspace();
+        });
+
         document.getElementById('resizeBtn').addEventListener('click', () => {
-            rows = parseInt(inputRows.value) || 4;
-            cols = parseInt(inputCols.value) || 5;
-            initGridArray();
-            drawWorkspaceGrid();
+            let newRows = parseInt(inputRows.value) || 4;
+            let newCols = parseInt(inputCols.value) || 5;
+            
+            const resizeArray = (oldArr, rLimit, cLimit, defaultVal) => {
+                return Array(rLimit).fill(null).map((_, r) => 
+                    Array(cLimit).fill(null).map((_, c) => 
+                        (oldArr[r] && oldArr[r][c] !== undefined) ? oldArr[r][c] : defaultVal
+                    )
+                );
+            };
+
+            rows = newRows;
+            cols = newCols;
+            colorGridData = resizeArray(colorGridData, rows, cols, 0);
+            shapeGridData = resizeArray(shapeGridData, rows, cols, 0);
+            shapeCellsData = resizeArray(shapeCellsData, Math.max(1, rows-1), Math.max(1, cols-1), 0);
+            
+            drawWorkspace();
         });
 
         document.getElementById('clearBtn').addEventListener('click', () => {
-            if(confirm("Are you sure you want to completely clear this setup level?")) {
-                currentGrid = Array(rows).fill(null).map(() => Array(cols).fill(0));
-                drawWorkspaceGrid();
+            if(confirm("Clear the currently active viewing layer?")) {
+                const activeGrid = getActiveGridReference();
+                for (let r = 0; r < activeGrid.length; r++) {
+                    for (let c = 0; c < activeGrid[0].length; c++) {
+                        activeGrid[r][c] = 0;
+                    }
+                }
+                drawWorkspace();
             }
         });
 
         document.getElementById('copyBtn').addEventListener('click', () => {
             outputData.select();
             document.execCommand('copy');
-            alert('Level layout code copied to clipboard! Paste it inside your script.js stagesData array configurations.');
+            alert('Level Code Copied!');
         });
 
         document.getElementById('importBtn').addEventListener('click', () => {
             const code = outputData.value.trim();
-            if (!code) return alert("Please paste level array text code into the area first.");
+            if (!code) return alert("Please paste code first.");
             
             try {
-                // Parse layout text dynamically safely
-                const parsed = eval(code); 
-                if (Array.isArray(parsed) && Array.isArray(parsed[0])) {
+                // Safely evaluate incoming code string to JS Object
+                const parsed = eval(`(${code})`); 
+                
+                if (Array.isArray(parsed)) {
+                    // It's a Color Map (single 2D array)
+                    modeSelector.value = 'color';
+                    layerControl.style.display = 'none';
                     rows = parsed.length;
                     cols = parsed[0].length;
-                    inputRows.value = rows;
-                    inputCols.value = cols;
-                    currentGrid = parsed;
-                    drawWorkspaceGrid();
+                    colorGridData = parsed;
+                    // Safely reconstruct backing arrays for shape just in case they switch back
+                    shapeGridData = Array(rows).fill(null).map(() => Array(cols).fill(0));
+                    shapeCellsData = Array(Math.max(1, rows-1)).fill(null).map(() => Array(Math.max(1, cols-1)).fill(0));
+                } else if (parsed && parsed.grid && parsed.cells) {
+                    // It's a Shape Map (Object with {grid, cells})
+                    modeSelector.value = 'shape';
+                    layerControl.style.display = 'flex';
+                    rows = parsed.grid.length;
+                    cols = parsed.grid[0].length;
+                    shapeGridData = parsed.grid;
+                    shapeCellsData = parsed.cells;
+                    // Safely reconstruct backing array for color
+                    colorGridData = Array(rows).fill(null).map(() => Array(cols).fill(0));
                 } else {
-                    alert("Invalid format! Must structure as a 2D Array layout framework matrix: [[4,0],[0,4]]");
+                    throw new Error("Format not recognized.");
                 }
+
+                inputRows.value = rows;
+                inputCols.value = cols;
+                buildPalette();
+                drawWorkspace();
+
             } catch (err) {
-                alert("Error reading standard configuration matrix system setup format code structure: " + err.message);
+                alert("Import failed. Ensure code matches standard matrix or object outputs: " + err.message);
             }
         });
 
-        // Initialize Runtime setup layout components
+        // Initialize editor
+        initArrays();
         buildPalette();
-        initGridArray();
-        drawWorkspaceGrid();
+        drawWorkspace();
     </script>
 </body>
 </html>

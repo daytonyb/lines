@@ -144,3 +144,41 @@ canvas {
     border-color: #333;
     cursor: not-allowed;
 }
+
+/* Add these blocks to the bottom of your style.css file */
+
+/* Mode Selection Screen Styles */
+#modeScreen {
+    text-align: center;
+    color: white;
+}
+
+.mode-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.mode-btn {
+    width: 250px;
+    padding: 15px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: #333;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    background-color: #555;
+    transform: scale(1.05);
+}
+
+/* Back button formatting inside the menu screen */
+#backToModesBtn {
+    margin-bottom: 20px;
+}

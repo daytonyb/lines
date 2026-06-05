@@ -8,8 +8,17 @@
 </head>
 <body>
 
-    <div id="menuScreen">
+    <div id="modeScreen">
         <h1>Draw A Line</h1>
+        <div class="mode-container">
+            <button class="mode-btn" id="colorModeBtn">Color Mode</button>
+            <button class="mode-btn" id="shapeModeBtn">Shape Mode</button>
+        </div>
+    </div>
+
+    <div id="menuScreen" style="display: none;">
+        <button class="menu-btn" id="backToModesBtn">← Change Mode</button>
+        <h1>Select a Level</h1>
         <div id="stagesContainer"></div>
     </div>
 
